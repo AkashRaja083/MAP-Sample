@@ -1,0 +1,663 @@
+================================================================================
+  TN GIS DASHBOARD — PROJECT DOCUMENTATION
+  Tamil Nadu Hospital Mapping Dashboard
+  Created: April 2026
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 1: WHAT THIS PROJECT DOES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is an interactive GIS (Geographic Information System) web dashboard that:
+
+  • Displays 23 real hospitals across 10 Tamil Nadu districts on a live map
+  • Places exact GPS-coordinate pin markers for each hospital
+  • Colour-codes pins — Blue = Government hospitals, Purple = Private hospitals
+  • Lets you click any pin to see a popup with hospital name, beds, specialty, coordinates
+  • Has a district filter that zooms the map to any selected district
+  • Has a type filter to show/hide Government or Private hospitals
+  • Has a map colour theme switcher (5 styles: Dark, Light, Voyager, Blue Night, Street)
+  • Shows a sidebar with stats, a searchable hospital list, and district filter chips
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 2: TECHNOLOGY STACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FRONTEND FRAMEWORK
+  • React 19          — Component-based UI library (JavaScript)
+                        https://react.dev
+
+BUILD TOOL
+  • Vite 8            — Lightning-fast dev server and bundler
+                        Replaces old Create React App (CRA)
+                        https://vite.dev
+
+MAPPING LIBRARY
+  • Leaflet 1.9       — Open-source interactive map library (pure JS)
+                        https://leafletjs.com
+  • React-Leaflet 4   — React wrapper for Leaflet
+                        Provides <MapContainer>, <TileLayer>, <Marker>, <Popup>, useMap()
+                        https://react-leaflet.js.org
+
+MAP TILE PROVIDERS (free, no API key needed)
+  • CartoDB Dark      — Dark-themed map tiles
+  • CartoDB Light     — Clean white/grey tiles
+  • CartoDB Voyager   — Colourful terrain tiles
+  • Stadia Smooth     — Deep blue tiles
+  • OpenStreetMap     — Classic community map
+
+STYLING
+  • Vanilla CSS       — All styling done with inline React styles and CSS files
+                        No CSS framework (no Tailwind, no Bootstrap)
+
+DATA
+  • Static JavaScript — Hospital data stored in data/hospitals.js as a plain JS array
+                        No database or backend server required
+
+PACKAGE MANAGER
+  • npm               — Used to install packages
+
+LANGUAGE
+  • JavaScript (ES Modules)
+  • JSX (JavaScript + XML syntax for React components)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 3: PROJECT FOLDER STRUCTURE EXPLAINED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+tn-gis-dashboard/
+│
+├── index.html              ← The single HTML page. React mounts into <div id="root">
+│
+├── vite.config.js          ← Vite build config (just enables the React plugin)
+│
+├── package.json            ← Lists all npm dependencies and scripts (npm run dev, etc.)
+│
+├── src/
+│   ├── main.jsx            ← Entry point. Renders <App /> into the HTML root div
+│   ├── App.jsx             ← Sets up React Router. Routes "/" → <Dashboard />
+│   ├── App.css             ← Global reset CSS (margin:0, padding:0, box-sizing)
+│   └── index.css           ← Global styles: font import, scrollbar, Leaflet popup overrides
+│
+├── pages/
+│   └── Dashboard.jsx       ← Main page layout. Holds selectedDistrict + selectedHospital
+│                             state and passes them to MapView and InfoPanel
+│
+├── components/
+│   ├── MapView.jsx         ← The interactive Leaflet map + all overlays (filters, legend)
+│   ├── InfoPanel.jsx       ← The left sidebar (stats cards, search, hospital list)
+│   └── Legend.jsx          ← (original file, now merged into MapView)
+│
+├── data/
+│   └── hospitals.js        ← All hospital data: name, district, type, beds, lat, lng
+│
+├── utils/
+│   ├── colorScale.js       ← getColor(score) function — returns hex color by score range
+│   └── geoUtils.js         ← formatLatLng() helper
+│
+└── services/
+    └── api.js              ← (original file) — axios API setup (not used, data is local)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 4: HOW THE CODE WORKS — FILE BY FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── 4.1  index.html ──────────────────────────────────────────────────────────────
+
+  The browser always loads this file first.
+  It has one important div:
+
+      <div id="root"></div>
+
+  React takes over this div and renders everything inside it dynamically.
+  The script tag loads src/main.jsx as a JavaScript module.
+
+
+── 4.2  src/main.jsx ────────────────────────────────────────────────────────────
+
+  import { createRoot } from 'react-dom/client'
+  import App from './App.jsx'
+
+  createRoot(document.getElementById('root')).render(<App />)
+
+  This is the JavaScript entry point.
+  It finds the #root div and tells React to render the <App /> component there.
+
+
+── 4.3  src/App.jsx ─────────────────────────────────────────────────────────────
+
+  import { BrowserRouter, Routes, Route } from "react-router-dom"
+  import Dashboard from "../pages/Dashboard"
+
+  function App() {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
+  Sets up URL-based routing using React Router.
+  When you visit "/" (the homepage), it renders <Dashboard />.
+  If you added more pages (e.g., /about), you'd add more <Route> elements here.
+
+
+── 4.4  pages/Dashboard.jsx ─────────────────────────────────────────────────────
+
+  This is the main page. It does three things:
+
+  1. HOLDS SHARED STATE
+     const [selectedDistrict, setSelectedDistrict] = useState(null)
+     const [selectedHospital, setSelectedHospital] = useState(null)
+
+     These two state variables remember which district/hospital is selected.
+     When either changes, both the sidebar and map re-render automatically.
+
+  2. LAYOUT — Two columns side by side:
+     Left column  → <InfoPanel />  (the dark sidebar with stats and lists)
+     Right column → <MapView />    (the interactive Leaflet map in a box)
+
+  3. PASSES PROPS (data) DOWN TO CHILDREN
+     <InfoPanel
+       selectedDistrict={selectedDistrict}
+       onDistrictSelect={setSelectedDistrict}   ← callback so InfoPanel can update state
+       selectedHospital={selectedHospital}
+     />
+     <MapView
+       selectedDistrict={selectedDistrict}
+       onDistrictSelect={setSelectedDistrict}
+       onHospitalSelect={setSelectedHospital}
+     />
+
+     This is called "lifting state up" — the parent holds the truth, children read it.
+
+
+── 4.5  components/MapView.jsx ──────────────────────────────────────────────────
+
+  This is the most complex file. It contains:
+
+  A) MAP_STYLES ARRAY
+     Defines 5 different tile layer URL templates.
+     Each tile provider gives a different visual color/style to the map.
+
+  B) createHospitalIcon(type)
+     Builds a custom SVG pin icon using Leaflet's L.divIcon().
+     Blue SVG pin  → Government hospitals
+     Purple SVG pin → Private hospitals
+     The pin shape is drawn with SVG <path> commands.
+     The red cross (+) is drawn with two <rect> elements.
+
+  C) MapController Component (uses useMap hook)
+     function MapController({ selectedDistrict }) {
+       const map = useMap()       ← gets direct access to Leaflet map object
+       useEffect(() => {
+         if (selectedDistrict) {
+           map.flyTo([lat, lng], 11, { animate: true, duration: 1.2 })
+         } else {
+           map.flyTo([10.8, 78.6], 7)   ← reset to full TN view
+         }
+       }, [selectedDistrict])
+     }
+
+     useMap() only works INSIDE a <MapContainer>.
+     When selectedDistrict changes, useEffect fires and animates the map camera.
+
+  D) MapView Component (main)
+     - showGovt, showPrivate state → controls which hospital types show
+     - mapStyle state → controls which tile URL is active
+     - filteredHospitals → computed list based on type + district filters
+     - Returns JSX with multiple absolutely-positioned overlay panels:
+         • Top-left: 🎨 Map Colour switcher (5 style swatches)
+         • Top-right: Filter by Type (Govt/Private checkboxes)
+         • Bottom-left: 📍 Filter by District (district list + Legend)
+     - The <MapContainer> contains:
+         <TileLayer>       ← renders the map tiles (the actual map image)
+         <MapController>   ← handles flyTo animation (no visible output)
+         {hospitals.map → <Marker>}  ← one pin per hospital
+
+  E) Marker → Popup
+     Each <Marker> has its position set to [hospital.lat, hospital.lng].
+     Clicking it opens a <Popup> styled as a dark card showing:
+       - Hospital name with colored header (blue or purple gradient)
+       - District, Specialty, Beds count, GPS coordinates
+
+
+── 4.6  components/InfoPanel.jsx ────────────────────────────────────────────────
+
+  The left sidebar. Contains:
+
+  A) STAT CARDS (grid of 4)
+     Hospitals count, Total Beds, Government count, Private count
+     Computed from the HOSPITALS array using .length and .reduce()
+
+  B) SELECTED HOSPITAL CARD
+     Shows only when selectedHospital prop is not null.
+     Displays name, district, beds, specialty with a colored gradient background.
+
+  C) SEARCH INPUT
+     Controlled input — value={search} onChange={e => setSearch(e.target.value)}
+     Filters the hospital list in real time using .filter() on the array.
+
+  D) DISTRICT FILTER CHIPS
+     Small clickable buttons for each district.
+     Clicking one calls onDistrictSelect(districtName) which updates Dashboard state,
+     which passes back down to MapView to trigger flyTo.
+
+  E) HOSPITAL LIST
+     Maps over filteredHospitals array.
+     Each card shows: name, district, specialty, bed count, type badge, coordinates.
+     If selectedHospital matches, that card gets a highlighted border.
+
+
+── 4.7  data/hospitals.js ───────────────────────────────────────────────────────
+
+  Exports:
+  - HOSPITALS array — 23 hospital objects, each with:
+      { id, name, district, type, beds, lat, lng, specialty }
+  - DISTRICT_COORDS — object mapping district name to { lat, lng, score }
+  - getHospitalsByDistrict(district) — helper function to filter by district
+  - DISTRICTS — array of unique district names
+
+
+── 4.8  utils/colorScale.js ─────────────────────────────────────────────────────
+
+  export function getColor(score) {
+    return score > 80 ? "#16a34a"   ← green   (Excellent)
+         : score > 60 ? "#84cc16"   ← lime    (Good)
+         : score > 40 ? "#facc15"   ← yellow  (Moderate)
+         : score > 20 ? "#f97316"   ← orange  (Poor)
+                      : "#dc2626"   ← red     (Critical)
+  }
+
+  A chain of ternary operators that maps a number (0–100) to a hex color.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 5: KEY REACT CONCEPTS USED IN THIS PROJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  CONCEPT                  WHERE USED
+  ─────────────────────────────────────────────────────────────────────────────
+  useState()               Tracks selectedDistrict, selectedHospital, mapStyle,
+                           showGovt, showPrivate, search, activeDistrict
+
+  useEffect()              In MapController — fires map.flyTo() when
+                           selectedDistrict changes
+
+  useMap()                 React-Leaflet hook — gets Leaflet map instance so we
+                           can call map.flyTo() programmatically
+
+  Props                    Dashboard passes state down to InfoPanel and MapView
+                           via props; children call callback props to update state
+
+  Lifting State Up         selectedDistrict lives in Dashboard so both MapView
+                           and InfoPanel can read and update it
+
+  Conditional Rendering    {selectedHospital && <SelectedCard />}
+                           Only renders when there is a selection
+
+  Array .map()             Renders a <Marker> for each hospital in HOSPITALS
+                           Renders a card for each hospital in the list
+
+  Array .filter()          Filters hospitals by type, district, and search query
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 6: STEP-BY-STEP — HOW TO BUILD THIS PROJECT FROM SCRATCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Prerequisites: Install Node.js (v18+) from https://nodejs.org
+
+  ──────────────────────────────────────────────────
+  STEP 1 — Create a new Vite + React project
+  ──────────────────────────────────────────────────
+
+  Open terminal and run:
+
+      npm create vite@latest tn-gis-dashboard -- --template react
+      cd tn-gis-dashboard
+      npm install
+
+  This creates the project skeleton with React and Vite configured.
+
+
+  ──────────────────────────────────────────────────
+  STEP 2 — Install required packages
+  ──────────────────────────────────────────────────
+
+      npm install react-leaflet leaflet react-router-dom
+
+  react-leaflet  → React components for the map
+  leaflet        → The core map library
+  react-router-dom → For URL-based page routing (BrowserRouter, Routes, Route)
+
+
+  ──────────────────────────────────────────────────
+  STEP 3 — Clean up the default Vite files
+  ──────────────────────────────────────────────────
+
+  Delete everything inside src/App.jsx (replace with your own code).
+  Delete everything inside src/App.css and src/index.css (start fresh).
+  Delete the src/assets/ images (react.svg, vite.svg).
+
+
+  ──────────────────────────────────────────────────
+  STEP 4 — Set up CSS reset (src/index.css)
+  ──────────────────────────────────────────────────
+
+  Add a Google Font import, reset margins, and make html/body/root fill 100% height:
+
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700');
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body, #root {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+      }
+
+  Also add Leaflet popup overrides here:
+
+      .leaflet-popup-content-wrapper { background: #0f172a; border-radius: 10px; }
+      .leaflet-marker-icon svg { transform-origin: bottom center; transition: transform 0.15s; }
+      .leaflet-marker-icon:hover svg { transform: scale(1.18); }
+      /* IMPORTANT: Never apply transform to .leaflet-marker-icon itself!
+         Leaflet uses transform:translate() to position markers.
+         Overriding it causes pins to jump to wrong locations. */
+
+
+  ──────────────────────────────────────────────────
+  STEP 5 — Create the data file (data/hospitals.js)
+  ──────────────────────────────────────────────────
+
+  Create folder: data/
+  Create file:   data/hospitals.js
+
+  Define your hospital data array with real GPS coordinates:
+
+      export const HOSPITALS = [
+        {
+          id: 1,
+          name: "Rajiv Gandhi Government General Hospital",
+          district: "Chennai",
+          type: "Government",
+          beds: 2314,
+          lat: 13.0827,
+          lng: 80.2707,
+          specialty: "Multi-specialty"
+        },
+        // ... add more hospitals
+      ]
+
+      export const DISTRICT_COORDS = {
+        Chennai: { lat: 13.0827, lng: 80.2707, score: 85 },
+        // ...
+      }
+
+      export const getHospitalsByDistrict = (district) =>
+        HOSPITALS.filter(h => h.district === district)
+
+  HOW TO GET GPS COORDINATES:
+    → Open Google Maps
+    → Right-click on the hospital location
+    → Click the coordinates shown (they get copied to clipboard)
+    → Paste the lat, lng values into your data file
+
+
+  ──────────────────────────────────────────────────
+  STEP 6 — Set up routing (src/App.jsx)
+  ──────────────────────────────────────────────────
+
+      import { BrowserRouter, Routes, Route } from "react-router-dom"
+      import Dashboard from "../pages/Dashboard"
+
+      export default function App() {
+        return (
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+            </Routes>
+          </BrowserRouter>
+        )
+      }
+
+
+  ──────────────────────────────────────────────────
+  STEP 7 — Create the Dashboard layout (pages/Dashboard.jsx)
+  ──────────────────────────────────────────────────
+
+  This is the page that divides the screen into sidebar + map:
+
+      import { useState } from "react"
+      import MapView from "../components/MapView"
+      import InfoPanel from "../components/InfoPanel"
+
+      export default function Dashboard() {
+        const [selectedDistrict, setSelectedDistrict] = useState(null)
+        const [selectedHospital, setSelectedHospital] = useState(null)
+
+        return (
+          <div style={{ display:"flex", height:"100vh" }}>
+            {/* Sidebar — 320px wide */}
+            <div style={{ width:"320px", overflowY:"auto" }}>
+              <InfoPanel
+                selectedDistrict={selectedDistrict}
+                onDistrictSelect={setSelectedDistrict}
+                selectedHospital={selectedHospital}
+              />
+            </div>
+
+            {/* Map area — all remaining space */}
+            <div style={{ flex:1, padding:"20px" }}>
+              {/* Title bar */}
+              <h2>Tamil Nadu — Hospital Locations</h2>
+
+              {/* Map box with border + rounded corners */}
+              <div style={{ flex:1, border:"1px solid #334155", borderRadius:"16px", overflow:"hidden" }}>
+                <MapView
+                  selectedDistrict={selectedDistrict}
+                  onDistrictSelect={setSelectedDistrict}
+                  onHospitalSelect={setSelectedHospital}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+
+  ──────────────────────────────────────────────────
+  STEP 8 — Create the Map component (components/MapView.jsx)
+  ──────────────────────────────────────────────────
+
+  8a. Import Leaflet + fix broken icon paths (this is needed in every Vite project):
+
+      import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
+      import "leaflet/dist/leaflet.css"
+      import L from "leaflet"
+
+      delete L.Icon.Default.prototype._getIconUrl
+      L.Icon.Default.mergeOptions({
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      })
+
+  8b. Create custom SVG icon:
+
+      function createHospitalIcon(type) {
+        const color = type === "Government" ? "#3b82f6" : "#a855f7"
+        const svg = `<svg ...>...</svg>`   // your SVG pin shape
+        return L.divIcon({ html: svg, iconSize:[32,40], iconAnchor:[16,40] })
+      }
+
+  8c. Create MapController to handle flyTo:
+
+      function MapController({ selectedDistrict }) {
+        const map = useMap()
+        useEffect(() => {
+          if (selectedDistrict) {
+            const { lat, lng } = DISTRICT_COORDS[selectedDistrict]
+            map.flyTo([lat, lng], 11, { animate: true, duration: 1.2 })
+          } else {
+            map.flyTo([10.8, 78.6], 7)
+          }
+        }, [selectedDistrict, map])
+        return null
+      }
+
+  8d. Render the map:
+
+      return (
+        <div style={{ position:"relative", height:"100%", width:"100%" }}>
+          {/* Overlay panels (positioned absolute, zIndex 1000) */}
+          {/* ... filter panels, legend, style switcher ... */}
+
+          <MapContainer center={[10.8, 78.6]} zoom={7} style={{ height:"100%", width:"100%" }}>
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            <MapController selectedDistrict={selectedDistrict} />
+            {hospitals.map(h => (
+              <Marker key={h.id} position={[h.lat, h.lng]} icon={createHospitalIcon(h.type)}>
+                <Popup>
+                  {/* popup content */}
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
+      )
+
+
+  ──────────────────────────────────────────────────
+  STEP 9 — Create the Sidebar (components/InfoPanel.jsx)
+  ──────────────────────────────────────────────────
+
+  Build the sidebar with:
+    - 4 stat cards (total hospitals, beds, govt count, private count)
+    - A selected hospital highlight card (conditionally rendered)
+    - Search input with onChange filter
+    - District filter chips (clickable buttons)
+    - A scrollable hospital list
+
+  All data comes from HOSPITALS array in data/hospitals.js.
+  No API calls needed — just JavaScript array methods (.filter, .map, .reduce).
+
+
+  ──────────────────────────────────────────────────
+  STEP 10 — Run the development server
+  ──────────────────────────────────────────────────
+
+      npm run dev
+
+  Open http://localhost:5173 in your browser.
+  The app hot-reloads — any file save instantly updates the browser.
+
+
+  ──────────────────────────────────────────────────
+  STEP 11 — Add features iteratively
+  ──────────────────────────────────────────────────
+
+  Once the basics work, add features one by one:
+
+    ✔ Map colour switcher  → add MAP_STYLES array, mapStyle state, loop styles as swatches
+    ✔ District filter zoom → add MapController + useMap + map.flyTo()
+    ✔ Custom pins          → L.divIcon() with SVG markup
+    ✔ Hover animation      → CSS on .leaflet-marker-icon svg (NOT the wrapper)
+    ✔ Dark popups          → CSS overrides on .leaflet-popup-content-wrapper
+    ✔ Hospital type filter → filter(h => h.type === "Government") based on checkbox state
+
+
+  ──────────────────────────────────────────────────
+  STEP 12 — Build for production (optional)
+  ──────────────────────────────────────────────────
+
+      npm run build
+
+  Creates a dist/ folder with minified, optimised HTML/JS/CSS files.
+  Deploy the dist/ folder to any static host:
+    - Netlify (drag-and-drop deploy)
+    - Vercel (connect GitHub repo)
+    - GitHub Pages
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 7: COMMON BUGS AND FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  BUG 1: Hospital pins jump to wrong location on hover
+  ─────────────────────────────────────────────────────
+  CAUSE:  Leaflet positions markers using CSS transform:translate().
+          If you add transform: scale() on .leaflet-marker-icon:hover,
+          it REPLACES Leaflet's translate, making the pin teleport.
+  FIX:    Target the INNER SVG, not the wrapper:
+              .leaflet-marker-icon svg { transform-origin: bottom center; }
+              .leaflet-marker-icon:hover svg { transform: scale(1.18); }
+
+
+  BUG 2: Map is grey / tiles not loading
+  ────────────────────────────────────────
+  CAUSE:  Missing "leaflet/dist/leaflet.css" import, or MapContainer has no height.
+  FIX:    Add: import "leaflet/dist/leaflet.css" (in MapView.jsx)
+          Set style={{ height:"100%", width:"100%" }} on MapContainer.
+          Make sure all parent divs also have a defined height.
+
+
+  BUG 3: Default marker icons show as broken image
+  ──────────────────────────────────────────────────
+  CAUSE:  Leaflet's default icon images don't work with Vite's module bundler.
+  FIX:    Add these 3 lines before using any Marker:
+              delete L.Icon.Default.prototype._getIconUrl
+              L.Icon.Default.mergeOptions({ iconUrl: "...", iconRetinaUrl: "...", shadowUrl: "..." })
+
+
+  BUG 4: useMap() throws error "No MapContext"
+  ──────────────────────────────────────────────
+  CAUSE:  useMap() can only be called INSIDE a component rendered inside <MapContainer>.
+  FIX:    Create a separate child component (e.g., MapController) that uses useMap(),
+          then render that component INSIDE <MapContainer>.
+
+
+  BUG 5: Map not filling its container
+  ──────────────────────────────────────
+  CAUSE:  Parent div has no height or is too small.
+  FIX:    Use CSS flex layout — set flex:1 on the map container,
+          and overflow:hidden on the parent. Add minHeight: 0 for flex children.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 8: USEFUL REFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  React docs                 → https://react.dev/learn
+  Vite docs                  → https://vite.dev/guide
+  React-Leaflet docs         → https://react-leaflet.js.org/docs/start-introduction
+  Leaflet docs               → https://leafletjs.com/reference.html
+  CartoDB tile styles list   → https://github.com/CartoDB/basemap-styles
+  Google Maps GPS lookup     → https://maps.google.com (right-click → coordinates)
+  npm package registry       → https://www.npmjs.com
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 9: QUICK COMMAND REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  COMMAND                          WHAT IT DOES
+  ───────────────────────────────────────────────────────────────────────────
+  npm create vite@latest ./        Create new Vite project in current folder
+  npm install                      Install all packages from package.json
+  npm install <package-name>       Install a specific package
+  npm run dev                      Start local dev server at localhost:5173
+  npm run build                    Build optimised production bundle to dist/
+  npm run preview                  Preview the production build locally
+
+================================================================================
+  END OF DOCUMENTATION
+================================================================================

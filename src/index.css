@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Leaflet popup dark theme */
+.leaflet-popup-content-wrapper {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  border-radius: 10px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip {
+  background: #334155 !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 220px !important;
+}
+.leaflet-popup-close-button {
+  color: #64748b !important;
+  font-size: 18px !important;
+  top: 6px !important;
+  right: 8px !important;
+  z-index: 10;
+}
+.leaflet-popup-close-button:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Leaflet tooltip dark theme */
+.leaflet-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+  display: none !important;
+}
+
+/* Hospital marker hover — target the inner SVG, NOT the wrapper.
+   The wrapper uses Leaflet's own transform:translate() for positioning;
+   overriding it causes the marker to jump to a wrong location.
+   Instead we scale the SVG inside, anchored at the bottom (pin tip). */
+.leaflet-marker-icon svg {
+  transform-origin: bottom center;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.leaflet-marker-icon:hover svg {
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 6px rgba(96,165,250,0.7));
+}
